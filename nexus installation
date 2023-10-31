@@ -1,0 +1,89 @@
+Steps
+
+1.	Update packages
+sudo apt-get update
+
+2.	Install java
+sudo apt install openjdk-8-jre-headless
+
+3.	Download Nexus
+cd /opt
+sudo wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+tar -zxvf latest-unix.tar.gz 
+sudo mv /opt/nexus-3.30.1-01 /opt/nexus
+
+4.	Lets create NEXUS user and then grant sudo privileges to manage services.
+sudo adduser nexus
+
+5.	Lets edit sudo file
+sudo visudo
+
+Add below line and save it
+nexus   ALL=(ALL)       NOPASSWD: ALL
+
+
+
+6.	Lets give owner permission to Nexus file
+sudo chown -R nexus:nexus /opt/nexus
+sudo chown -R nexus:nexus /opt/sonatype-work
+
+7.	First we will set per user limit in 
+sudo nano /etc/security/limits.conf
+
+* 	         soft      nproc          65535
+* 	   	 hard     nproc          65535
+* 	 	 soft      nofile          65535
+* 	 	 hard     nofile          65535
+jack 	 soft      nproc          200000 
+jack 	 hard    nproc           200000
+jack 	 soft      nofile          200000
+jack 	 hard     nofile          200000
+
+
+8.	 Now lets enable pam_limits
+sudo nano /etc/pam.d/common-session
+Add below line
+session required pam_limits.so
+
+
+
+
+9.	Configure Nexus to run as a service
+sudo nano /etc/systemd/system/nexus.service
+Add below lines to service file
+
+Description=nexus service
+After=network.target
+[Service]
+Type=forking
+LimitNOFILE=65536
+User=nexus
+Group=nexus
+ExecStart=/opt/nexus/bin/nexus start
+ExecStop=/opt/nexus/bin/nexus stop
+User=nexus
+Restart=on-abort
+[Install]
+WantedBy=multi-user.target
+
+10.	Set limits by editing sysctl configuration file.
+sudo nano/etc/sysctl.conf 
+
+Add below line
+fs.file-max = 2097152
+
+
+
+11.	Lets add Nexus as a service
+sudo nano /opt/nexus/bin/nexus.rc
+
+Uncomment the the following line and add “nexus”
+run_as_user="nexus"
+
+sudo ln -s /opt/nexus/bin/nexus /etc/init.d/nexus
+
+12.	Now login as nexus user and start the service
+sudo su - nexus  
+ /etc/init.d/nexus start
+
+13.	Login to Nexus on browser.
